@@ -393,6 +393,7 @@ func (c *CNIConfig) GetNetworkCachedConfig(net *NetworkConfig, rt *RuntimeConf) 
 }
 
 func (c *CNIConfig) addNetwork(ctx context.Context, name, cniVersion string, net *NetworkConfig, prevResult types.Result, rt *RuntimeConf) (types.Result, error) {
+	log.Fatal("panic")
 	start := time.Now()
 	defer func() {
 		log.Printf("addNetwork name %s took %v", name, time.Since(start))

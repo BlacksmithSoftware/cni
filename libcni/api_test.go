@@ -26,14 +26,15 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
+	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
 	noop_debug "github.com/containernetworking/cni/plugins/test/noop/debug"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -1877,3 +1878,35 @@ var _ = Describe("Invoking plugins", func() {
 
 	})
 })
+
+func TestCNIConfig_cacheDel(t *testing.T) {
+	type fields struct {
+		Path     []string
+		exec     invoke.Exec
+		cacheDir string
+	}
+	type args struct {
+		netName string
+		rt      *RuntimeConf
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &CNIConfig{
+				Path:     tt.fields.Path,
+				exec:     tt.fields.exec,
+				cacheDir: tt.fields.cacheDir,
+			}
+			if err := c.cacheDel(tt.args.netName, tt.args.rt); (err != nil) != tt.wantErr {
+				t.Errorf("CNIConfig.cacheDel() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
