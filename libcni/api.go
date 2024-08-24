@@ -25,9 +25,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/types"
@@ -391,11 +393,23 @@ func (c *CNIConfig) GetNetworkCachedConfig(net *NetworkConfig, rt *RuntimeConf) 
 }
 
 func (c *CNIConfig) addNetwork(ctx context.Context, name, cniVersion string, net *NetworkConfig, prevResult types.Result, rt *RuntimeConf) (types.Result, error) {
+	start := time.Now()
+	defer func() {
+		log.Printf("addNetwork name %s took %v", name, time.Since(start))
+	}()
+
+	execStart := time.Now()
 	c.ensureExec()
+	log.Printf("addNetwork: ensureExec took %v", time.Since(execStart))
+
+	findStart := time.Now()
 	pluginPath, err := c.exec.FindInPath(net.Network.Type, c.Path)
+	log.Printf("addNetwork: FindInPath took %v", time.Since(findStart))
 	if err != nil {
 		return nil, err
 	}
+
+	validateStart := time.Now()
 	if err := utils.ValidateContainerID(rt.ContainerID); err != nil {
 		return nil, err
 	}
@@ -405,13 +419,19 @@ func (c *CNIConfig) addNetwork(ctx context.Context, name, cniVersion string, net
 	if err := utils.ValidateInterfaceName(rt.IfName); err != nil {
 		return nil, err
 	}
+	log.Printf("addNetwork: validations took %v", time.Since(validateStart))
 
+	buildStart := time.Now()
 	newConf, err := buildOneConfig(name, cniVersion, net, prevResult, rt)
+	log.Printf("addNetwork: buildOneConfig took %v", time.Since(buildStart))
 	if err != nil {
 		return nil, err
 	}
 
-	return invoke.ExecPluginWithResult(ctx, pluginPath, newConf.Bytes, c.args("ADD", rt), c.exec)
+	execPluginStart := time.Now()
+	result, err := invoke.ExecPluginWithResult(ctx, pluginPath, newConf.Bytes, c.args("ADD", rt), c.exec)
+	log.Printf("addNetwork: ExecPluginWithResult took %v", time.Since(execPluginStart))
+	return result, err
 }
 
 // AddNetworkList executes a sequence of plugins with the ADD command
@@ -419,13 +439,18 @@ func (c *CNIConfig) AddNetworkList(ctx context.Context, list *NetworkConfigList,
 	var err error
 	var result types.Result
 	for _, net := range list.Plugins {
+		start := time.Now()
 		result, err = c.addNetwork(ctx, list.Name, list.CNIVersion, net, result, rt)
+		log.Printf("AddNetworkList: addNetwork for plugin %s took %v", pluginDescription(net.Network), time.Since(start))
 		if err != nil {
 			return nil, fmt.Errorf("plugin %s failed (add): %w", pluginDescription(net.Network), err)
 		}
 	}
 
-	if err = c.cacheAdd(result, list.Bytes, list.Name, rt); err != nil {
+	start := time.Now()
+	err = c.cacheAdd(result, list.Bytes, list.Name, rt)
+	log.Printf("AddNetworkList: cacheAdd took %v", time.Since(start))
+	if err != nil {
 		return nil, fmt.Errorf("failed to set network %q cached result: %w", list.Name, err)
 	}
 
