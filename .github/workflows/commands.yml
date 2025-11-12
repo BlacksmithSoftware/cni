@@ -6,7 +6,7 @@ on:
 jobs:
   retest:
     if: github.repository == 'containernetworking/cni'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Check out code
         uses: actions/checkout@v4
