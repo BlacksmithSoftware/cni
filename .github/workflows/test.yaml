@@ -73,7 +73,7 @@ jobs:
   test-win:
     name: Build and run tests on Windows
     needs: build
-    runs-on: windows-latest
+    runs-on: blacksmith-4vcpu-windows-2025
     steps:
       - name: setup go
         uses: actions/setup-go@v5
